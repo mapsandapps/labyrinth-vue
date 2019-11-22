@@ -1,6 +1,14 @@
 <template>
   <div class="hello">
-    <svg width="500" height="500" viewBox="0 0 960 960">
+    <svg
+      width="500"
+      height="500"
+      viewBox="0 0 960 960"
+      @mousedown="mousedown"
+      @mouseup="mouseup"
+      @mouseleave="mouseleave"
+      @mouseout="mouseout"
+      @mousemove="mousemove">
       <path
         :d="pathD"
         stroke="#B58A47"
@@ -24,14 +32,51 @@ export default class Labyrinth extends Vue {
 
   moving: boolean = false
 
+
+  SPEED_MULTIPLIER: number = 4
+
+  maxSpeed: number = 0
+
   circle = d3.select('circle')
 
   path = d3.select('path')
 
+  mousedown() {
+    console.log('mousedown')
+    this.moving = true
+    this.circle.transition()
+      .duration(this.maxSpeed)
+      .attrTween("transform", this.translateAlong(this.path.node()))
+      .ease(d3.easeLinear)
+    // TODO: http://xaedes.de/dev/transitions/
+    // or maybe better yet the spiral example here: https://observablehq.com/@lemonnish/svg-path-animations-d3-transition
+  }
+
+  mouseup() {
+    console.log('mouseup')
+    this.moving = false
+    this.circle.transition()
+      .duration(0)
+  }
+
+  mouseout() {
+    console.log('mouseout')
+  }
+
+  mouseleave() {
+    console.log('mouseleave')
+  }
+
+  mousemove() {
+    console.log('mousemove')
+  }
+
   mounted() {
     this.path = d3.select('path')
     this.circle = d3.select('circle')
-    this.transition()
+
+    let l = this.path.node().getTotalLength()
+    this.maxSpeed = l * this.SPEED_MULTIPLIER
   }
 
   // Returns an attrTween for translating along the specified path element.
@@ -46,14 +91,11 @@ export default class Labyrinth extends Vue {
   }
 
   transition() {
-    const MAX_SPEED = 4
-    let l = this.path.node().getTotalLength()
-
     this.circle.transition()
-      .duration(l * MAX_SPEED)
+      .duration(this.maxSpeed)
       .attrTween("transform", this.translateAlong(this.path.node()))
       .ease(d3.easeLinear)
-      .on("end", this.transition);
+      .on("end", this.transition)
   }
 }
 </script>
