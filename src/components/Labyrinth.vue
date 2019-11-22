@@ -1,0 +1,67 @@
+<template>
+  <div class="hello">
+    <svg width="500" height="500" viewBox="0 0 960 960">
+      <path
+        :d="pathD"
+        stroke="#B58A47"
+        stroke-width="20"
+        fill="none" />
+      <circle r="20" transform="translate(256, 384)" />
+    </svg>
+    <button id="button" @click="transition">Restart</button>
+  </div>
+</template>
+
+<script lang="ts">
+import { Component, Prop, Vue } from 'vue-property-decorator'
+import * as d3 from 'd3'
+
+// help from https://bl.ocks.org/mbostock/1705868
+
+@Component
+export default class Labyrinth extends Vue {
+  pathD: string = 'M 512,64 a 192,192 0 0,1 192,192 a 192,192 0 0,1 -192,192 a 256,256 0 0,0 256,-256 a 320,320 0 0,1 -320,320 a 192,192 0 0,1 -192,-192 a 128,128 0 0,0 128,128 a 64,64 0 0,0 64,-64 a 64,64 0 0,1 64,-64 a 64,64 0 0,0 64,-64 a 64,64 0 0,0 -64,-64 a 64,64 0 0,0 -64,64 a 64,64 0 0,1 -64,64 a 128,128 0 0,1 -128,-128'
+
+  moving: boolean = false
+
+  circle = d3.select('circle')
+
+  path = d3.select('path')
+
+  mounted() {
+    this.path = d3.select('path')
+    this.circle = d3.select('circle')
+    this.transition()
+  }
+
+  // Returns an attrTween for translating along the specified path element.
+  translateAlong(path) {
+    var l = path.getTotalLength();
+    return function() {
+      return function(t) {
+        var p = path.getPointAtLength(t * l);
+        return "translate(" + p.x + "," + p.y + ")";
+      };
+    };
+  }
+
+  transition() {
+    const MAX_SPEED = 4
+    let l = this.path.node().getTotalLength()
+
+    this.circle.transition()
+      .duration(l * MAX_SPEED)
+      .attrTween("transform", this.translateAlong(this.path.node()))
+      .ease(d3.easeLinear)
+      .on("end", this.transition);
+  }
+}
+</script>
+
+<style scoped lang="scss">
+circle {
+  fill: steelblue;
+  stroke: #fff;
+  stroke-width: 5px;
+}
+</style>

@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "core-js": "^3.3.2",
+    "d3": "^5.14.2",
+    "d3-path": "^1.0.9",
     "vue": "^2.6.10",
     "vue-class-component": "^7.0.2",
     "vue-property-decorator": "^8.3.0",
@@ -17,6 +19,7 @@
     "vuex": "^3.0.1"
   },
   "devDependencies": {
+    "@types/d3": "^5.7.2",
     "@vue/cli-plugin-babel": "^4.0.0",
     "@vue/cli-plugin-e2e-cypress": "^4.0.0",
     "@vue/cli-plugin-typescript": "^4.0.0",
