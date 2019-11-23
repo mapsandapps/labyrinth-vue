@@ -7,30 +7,34 @@
       @mouseup="mouseup"
       @mouseleave="mouseleave"
       @mouseout="mouseout"
-      @mousemove="mousemove">
+      @mousemove="mousemove"
+      transform="scale(-1, -1)">
       <g
         class="path-container"
         :style="pathContainerStyles"
-        :transform="pathContainerTransform">
+        transform="scale(-1, -1)">
         <path
           class="outline"
           stroke="#B58A47"
           stroke-width="14"
           fill="none"
-          :d="pathD" />
+          :d="pathD"
+          transform="translate(-250, -250)" />
         <path
           class="outline"
           stroke="#546e7a"
           stroke-width="12"
           fill="none"
-          :d="pathD" />
+          :d="pathD"
+          transform="translate(-250, -250)" />
         <path
           class="animated-path"
           :style="animatedPathStyles"
           :d="pathD"
           stroke="#B58A47"
           stroke-width="8"
-          fill="none" />
+          fill="none"
+          transform="translate(-250, -250)" />
       </g>
       <g>
         <circle
@@ -65,7 +69,6 @@ export default class Labyrinth extends Vue {
 
   animatedPathStyles: string = 'animation-play-state: paused'
   pathContainerStyles: string = 'animation-play-state: paused;'
-  pathContainerTransform: string = 'scale(-1,-1) translate(-250, -250)'
 
   calculatePathStyles() {
     return `
@@ -80,7 +83,6 @@ export default class Labyrinth extends Vue {
     return `
       --path-duration: ${this.pathLength * this.DURATION_MULTIPLIER}ms;
       animation-play-state: ${this.moving ? 'running' : 'paused'};
-      motion-path: path('${this.pathD}');
       offset-path: path('${this.pathD}');
     `
   }
@@ -161,7 +163,6 @@ export default class Labyrinth extends Vue {
 
 @keyframes move { // TODO: maybe adjust by half the screen size?
   100% {
-    motion-offset: 100%;
     offset-distance: 100%;
   }
 }
