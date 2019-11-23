@@ -1,6 +1,5 @@
 <template>
   <div id="app">
-    this is the App component
     <Labyrinth />
   </div>
 </template>
