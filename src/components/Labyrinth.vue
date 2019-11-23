@@ -1,7 +1,6 @@
 <template>
   <div
-    class="labyrinth-container"
-    :style="containerStyles">
+    class="labyrinth-container">
     <svg
       viewBox="0 0 500 500"
       @mousedown="mousedown"
@@ -12,7 +11,7 @@
       <g
         class="path-container"
         :style="pathContainerStyles"
-        transform="scale(-1,-1)">
+        :transform="pathContainerTransform">
         <path
           class="outline"
           stroke="#B58A47"
@@ -35,6 +34,8 @@
       </g>
       <g>
         <circle
+          cx="250"
+          cy="250"
           r="8"
           fill="#FFCD7D" />
           <!-- TODO: give circle a shadow -->
@@ -64,7 +65,7 @@ export default class Labyrinth extends Vue {
 
   animatedPathStyles: string = 'animation-play-state: paused'
   pathContainerStyles: string = 'animation-play-state: paused;'
-  containerStyles: string = ''
+  pathContainerTransform: string = 'scale(-1,-1) translate(-250, -250)'
 
   calculatePathStyles() {
     return `
@@ -138,6 +139,11 @@ export default class Labyrinth extends Vue {
 </script>
 
 <style scoped lang="scss">
+.labyrinth-container, svg {
+  width: 100%;
+  height: 100%;
+}
+
 .animated-path {
   stroke-dasharray: var(--path-length);
   stroke-dashoffset: var(--path-length);
@@ -150,13 +156,10 @@ export default class Labyrinth extends Vue {
   animation: move var(--path-duration) linear forwards;
   // animation-fill-mode: backwards
   offset-rotate: 0deg;
+  // motion-rotation: reverse;
 }
 
 @keyframes move { // TODO: maybe adjust by half the screen size?
-  // 0% {
-  //   motion-offset: 100%;
-  //   offset-direction: 100%;
-  // }
   100% {
     motion-offset: 100%;
     offset-distance: 100%;
