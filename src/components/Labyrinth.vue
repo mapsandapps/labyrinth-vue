@@ -38,6 +38,7 @@
       </g>
       <g>
         <circle
+          class="position"
           cx="250"
           cy="250"
           r="8"
@@ -52,6 +53,7 @@
 
 <script lang="ts">
 import { Component, Prop, Vue } from 'vue-property-decorator'
+import { bind, throttle } from 'lodash'
 
 type Point = {
   x: number
@@ -68,84 +70,114 @@ export default class Labyrinth extends Vue {
   moving: boolean = false
   pathLength: number = 0
   DURATION_MULTIPLIER: number = 10
-  maxSpeed: number = 0
+  currentSpeed: number = 1
   started: boolean = false
   finished: boolean = false
   lastPassedPoint: Point | null = null
   currentHeading: number | null = null
+  currentTouchDirection: number | null = null
 
   animatedPathStyles: string = 'animation-play-state: paused'
   pathContainerStyles: string = 'animation-play-state: paused;'
 
-  interval: number = 0
+  bearingInterval: number = 0
+  touchPointInterval: number = 0
 
-  calculatePathStyles() {
-    return `
+  setStyles() {
+    const animationPlayState = this.moving && this.currentSpeed > 0 ? 'running' : 'paused' // TODO: move this into component state; remove currentSpeed
+    const duration = this.pathLength * this.DURATION_MULTIPLIER
+
+    this.animatedPathStyles = `
       display: ${this.started ? 'initial' : 'none'};
       --path-length: ${this.pathLength};
-      --path-duration: ${this.pathLength * this.DURATION_MULTIPLIER}ms;
-      animation-play-state: ${this.moving ? 'running' : 'paused'};
+      --path-duration: ${duration}ms;
+      animation-play-state: ${animationPlayState};
     `
-  }
 
-  calculatePathContainerStyles() {
-    return `
-      --path-duration: ${this.pathLength * this.DURATION_MULTIPLIER}ms;
-      animation-play-state: ${this.moving ? 'running' : 'paused'};
+    this.pathContainerStyles = `
+      --path-duration: ${duration}ms;
+      animation-play-state: ${animationPlayState};
       offset-path: path('${this.pathD}');
     `
   }
 
-
   /**
    * Calculates the direction the circle is "moving" along the line, where 0 is up, 90 is right, etc.
+   * Also used to calculate the position of the cursor/finger relative to the circle
    */
-  calculateHeading(firstX: number, firstY: number, secondX: number, secondY: number) {
+  calculateHeading(firstX: number, firstY: number, secondX: number, secondY: number): number {
     const radians = Math.atan2(firstX - secondX, secondY - firstY)
     const degrees = radians * (180 / Math.PI)
     return degrees < 0 ? 360 + degrees : degrees
   }
 
-  adjustContainer() {
+  getContainerPosition(): void {
     if(this.moving) {
-      // console.log('adjustContainer')
       const rect = document.querySelector('.path-container').getBoundingClientRect()
       if (this.lastPassedPoint) {
         this.currentHeading = this.calculateHeading(this.lastPassedPoint.x, this.lastPassedPoint.y, rect.left, rect.top)
+        this.calculateSpeed()
+      } else {
+        this.currentSpeed = 1
       }
       this.lastPassedPoint = { x: rect.left, y: rect.top }
     }
   }
-  // can i actually do the opposite, and animate the path around the point? 🧐
 
-  mousedown() {
+  mousedown(): void {
     this.started = true
     this.moving = true
 
-    this.interval = window.setInterval(this.adjustContainer, 300)
-    this.animatedPathStyles = this.calculatePathStyles()
-    this.pathContainerStyles = this.calculatePathContainerStyles()
+    this.bearingInterval = window.setInterval(this.getContainerPosition, 300)
+    this.setStyles()
   }
 
-  mouseup() {
+  mouseup(): void {
     this.moving = false
-    window.clearInterval(this.interval)
-    this.animatedPathStyles = this.calculatePathStyles()
-    this.pathContainerStyles = this.calculatePathContainerStyles()
+    window.clearInterval(this.bearingInterval)
+    window.clearInterval(this.touchPointInterval)
+    this.setStyles()
   }
 
   mouseout() {}
 
   mouseleave() {}
 
-  mousemove() {}
+  calculateSpeed(): void {
+    if (typeof this.currentHeading === 'number' && typeof this.currentTouchDirection === 'number') {
+      const inverseSpeed = Math.abs(this.currentHeading - this.currentTouchDirection) // 0 to 180
+      this.currentSpeed = Math.max(90 - inverseSpeed, 0) / 90 // 0 to 1
+
+      this.setStyles()
+    }
+  }
+
+  getCurrentTouchDirection(e): void {
+    // TODO: probably should also call this on mousedown
+    // TODO: can probably store position of circle: it shouldn't change
+    const circle = document.querySelector('.position')
+    if (circle) { // FIXME: how is there ever not a circle? 🤔
+      const circleRect = circle.getBoundingClientRect()
+      const circlePosition: Point = {
+        x: circleRect.left + (circleRect.width / 2),
+        y: circleRect.top + (circleRect.height / 2)
+      }
+      this.currentTouchDirection = this.calculateHeading(e.x, e.y, circlePosition.x, circlePosition.y)
+      this.calculateSpeed()
+    }
+  }
+
+  mousemove = bind(throttle(e => this.getCurrentTouchDirection(e), 1000, {
+    leading: true
+  }), this)
 
   onAnimationEnd(e) {
-    console.log(e)
     if (e.type === 'animationend') {
       this.finished = true
       this.lastPassedPoint = null
       this.currentHeading = null
+      this.currentTouchDirection = null
+      this.currentSpeed = 1
     }
   }
 
@@ -154,13 +186,11 @@ export default class Labyrinth extends Vue {
     var path = document.querySelector('.animated-path')
     if (path) {
       this.pathLength = path.getTotalLength()
-      console.log('path length:', this.pathLength)
     }
 
     document.querySelector('.animated-path').addEventListener('animationend', this.onAnimationEnd, false)
 
-    this.animatedPathStyles = this.calculatePathStyles()
-    this.pathContainerStyles = this.calculatePathContainerStyles()
+    this.setStyles()
   }
 
   beforeDestroy() {
