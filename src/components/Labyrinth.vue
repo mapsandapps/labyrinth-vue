@@ -53,6 +53,11 @@
 <script lang="ts">
 import { Component, Prop, Vue } from 'vue-property-decorator'
 
+type Point = {
+  x: number
+  y: number
+}
+
 @Component
 export default class Labyrinth extends Vue {
   // pathD: string = 'M 512,64 a 192,192 0 0,1 192,192 a 192,192 0 0,1 -192,192 a 256,256 0 0,0 256,-256 a 320,320 0 0,1 -320,320 a 192,192 0 0,1 -192,-192 a 128,128 0 0,0 128,128 a 64,64 0 0,0 64,-64 a 64,64 0 0,1 64,-64 a 64,64 0 0,0 64,-64 a 64,64 0 0,0 -64,-64 a 64,64 0 0,0 -64,64 a 64,64 0 0,1 -64,64 a 128,128 0 0,1 -128,-128'
@@ -66,9 +71,13 @@ export default class Labyrinth extends Vue {
   maxSpeed: number = 0
   started: boolean = false
   finished: boolean = false
+  lastPassedPoint: Point | null = null
+  currentHeading: number | null = null
 
   animatedPathStyles: string = 'animation-play-state: paused'
   pathContainerStyles: string = 'animation-play-state: paused;'
+
+  interval: number = 0
 
   calculatePathStyles() {
     return `
@@ -87,23 +96,40 @@ export default class Labyrinth extends Vue {
     `
   }
 
+
+  /**
+   * Calculates the direction the circle is "moving" along the line, where 0 is up, 90 is right, etc.
+   */
+  calculateHeading(firstX: number, firstY: number, secondX: number, secondY: number) {
+    const radians = Math.atan2(firstX - secondX, secondY - firstY)
+    const degrees = radians * (180 / Math.PI)
+    return degrees < 0 ? 360 + degrees : degrees
+  }
+
   adjustContainer() {
-    // while(this.moving) {
-    //   console.log('adjustContainer')
-    // }
+    if(this.moving) {
+      // console.log('adjustContainer')
+      const rect = document.querySelector('.path-container').getBoundingClientRect()
+      if (this.lastPassedPoint) {
+        this.currentHeading = this.calculateHeading(this.lastPassedPoint.x, this.lastPassedPoint.y, rect.left, rect.top)
+      }
+      this.lastPassedPoint = { x: rect.left, y: rect.top }
+    }
   }
   // can i actually do the opposite, and animate the path around the point? 🧐
 
   mousedown() {
     this.started = true
     this.moving = true
-    this.adjustContainer()
+
+    this.interval = window.setInterval(this.adjustContainer, 300)
     this.animatedPathStyles = this.calculatePathStyles()
     this.pathContainerStyles = this.calculatePathContainerStyles()
   }
 
   mouseup() {
     this.moving = false
+    window.clearInterval(this.interval)
     this.animatedPathStyles = this.calculatePathStyles()
     this.pathContainerStyles = this.calculatePathContainerStyles()
   }
@@ -118,10 +144,13 @@ export default class Labyrinth extends Vue {
     console.log(e)
     if (e.type === 'animationend') {
       this.finished = true
+      this.lastPassedPoint = null
+      this.currentHeading = null
     }
   }
 
   mounted() {
+    // TODO: some of this should possibly move into a startingLevel method
     var path = document.querySelector('.animated-path')
     if (path) {
       this.pathLength = path.getTotalLength()
