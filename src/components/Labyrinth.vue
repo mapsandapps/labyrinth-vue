@@ -69,6 +69,7 @@ export default class Labyrinth extends Vue {
 
   moving: boolean = false
   pathLength: number = 0
+  position: number = 0
   DURATION_MULTIPLIER: number = 10
   currentSpeed: number = 1
   started: boolean = false
@@ -77,27 +78,42 @@ export default class Labyrinth extends Vue {
   currentHeading: number | null = null
   currentTouchDirection: number | null = null
 
-  animatedPathStyles: string = 'animation-play-state: paused'
-  pathContainerStyles: string = 'animation-play-state: paused;'
+  animatedPathStyles: string = ''
+  pathContainerStyles: string = ''
 
   bearingInterval: number = 0
   touchPointInterval: number = 0
 
-  setStyles() {
-    const animationPlayState = this.moving && this.currentSpeed > 0 ? 'running' : 'paused' // TODO: move this into component state; remove currentSpeed
-    const duration = this.pathLength * this.DURATION_MULTIPLIER
+  frame() {
+    if (this.position >= this.pathLength) {
+      this.moving = false
+      console.warn('complete!')
 
+    } else {
+      if (this.moving) {
+        this.position += 3 * this.currentSpeed
+        this.setStyles()
+        window.requestAnimationFrame(this.frame)
+      }
+    }
+  }
+
+  beginAnimation() {
+    this.frame()
+  }
+
+  setStyles() {
     this.animatedPathStyles = `
       display: ${this.started ? 'initial' : 'none'};
       --path-length: ${this.pathLength};
-      --path-duration: ${duration}ms;
-      animation-play-state: ${animationPlayState};
+      stroke-dashoffset: ${this.pathLength - this.position};
     `
 
+    const offsetDistance = this.position * 100 / this.pathLength
+
     this.pathContainerStyles = `
-      --path-duration: ${duration}ms;
-      animation-play-state: ${animationPlayState};
       offset-path: path('${this.pathD}');
+      offset-distance: ${offsetDistance}%;
     `
   }
 
@@ -129,14 +145,13 @@ export default class Labyrinth extends Vue {
     this.moving = true
 
     this.bearingInterval = window.setInterval(this.getContainerPosition, 300)
-    this.setStyles()
+    this.beginAnimation()
   }
 
   mouseup(): void {
     this.moving = false
     window.clearInterval(this.bearingInterval)
     window.clearInterval(this.touchPointInterval)
-    this.setStyles()
   }
 
   mouseout() {}
@@ -147,8 +162,6 @@ export default class Labyrinth extends Vue {
     if (typeof this.currentHeading === 'number' && typeof this.currentTouchDirection === 'number') {
       const inverseSpeed = Math.abs(this.currentHeading - this.currentTouchDirection) // 0 to 180
       this.currentSpeed = Math.max(90 - inverseSpeed, 0) / 90 // 0 to 1
-
-      this.setStyles()
     }
   }
 
@@ -208,30 +221,9 @@ export default class Labyrinth extends Vue {
 .animated-path {
   stroke-dasharray: var(--path-length);
   stroke-dashoffset: var(--path-length);
-
-  // The animation shorthand CSS property applies an animation between styles. It is a shorthand for animation-name, animation-duration, animation-timing-function, animation-delay, animation-iteration-count, animation-direction, animation-fill-mode, and animation-play-state
-  animation: dash var(--path-duration) linear forwards; // TODO: set duration programatically
 }
 
 .path-container {
-  animation: move var(--path-duration) linear forwards;
-  // animation-fill-mode: backwards
   offset-rotate: 0deg;
-  // motion-rotation: reverse;
-}
-
-@keyframes move { // TODO: maybe adjust by half the screen size?
-  100% {
-    offset-distance: 100%;
-  }
-}
-
-@keyframes dash {
-  from {
-    stroke-dashoffset: var(--path-length);
-  }
-  to {
-    stroke-dashoffset: 0;
-  }
 }
 </style>
