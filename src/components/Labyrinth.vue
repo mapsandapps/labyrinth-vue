@@ -114,7 +114,15 @@ export default class Labyrinth extends Vue {
   }
 
   beginAnimation() {
+    this.started = true
+    this.moving = true
+
     this.frame()
+  }
+
+  endAnimation() {
+    this.moving = false
+    window.clearInterval(this.touchPointInterval)
   }
 
   setStyles() {
@@ -161,23 +169,33 @@ export default class Labyrinth extends Vue {
     }
   }
 
-  mousedown(): void {
-    this.started = true
-    this.moving = true
-
+  touchstart(): void {
     this.beginAnimation()
   }
 
+  mousedown(): void {
+    this.beginAnimation()
+  }
+
+  touchend(): void {
+    this.endAnimation()
+  }
+
   mouseup(): void {
-    this.moving = false
-    window.clearInterval(this.touchPointInterval)
+    this.endAnimation()
   }
 
   mouseout() {}
 
   mouseleave() {}
 
-  mousemove = bind(throttle(e => this.getCurrentTouchDirection(e), 50, {
+  touchmove(e) {
+    e.preventDefault()
+    // TODO: might need to throttle this? it sounds like chrome may throttle to 200ms by default
+    this.getCurrentTouchDirection(e.touches[0].pageX, e.touches[0].pageY)
+  }
+
+  mousemove = bind(throttle(e => this.getCurrentTouchDirection(e.x, e.y), 50, {
     leading: true
   }), this)
 
@@ -188,7 +206,7 @@ export default class Labyrinth extends Vue {
     }
   }
 
-  getCurrentTouchDirection(e): void {
+  getCurrentTouchDirection(x: number, y: number): void {
     // TODO: probably should also call this on mousedown
     // TODO: can probably store position of circle: it shouldn't change
     const circle = document.querySelector('.position')
@@ -198,9 +216,9 @@ export default class Labyrinth extends Vue {
         x: circleRect.left + (circleRect.width / 2),
         y: circleRect.top + (circleRect.height / 2)
       }
-      this.currentTouchDirection = this.calculateHeading(e.x, e.y, circlePosition.x, circlePosition.y)
+      this.currentTouchDirection = this.calculateHeading(x, y, circlePosition.x, circlePosition.y)
 
-      this.debugTouchDirection = `M 250,250 l ${circlePosition.x - e.x},${circlePosition.y - e.y}`
+      this.debugTouchDirection = `M 250,250 l ${circlePosition.x - x},${circlePosition.y - y}`
       this.calculateSpeed()
     }
   }
@@ -222,12 +240,21 @@ export default class Labyrinth extends Vue {
       this.pathLength = path.getTotalLength()
     }
 
+    document.body.addEventListener('touchstart', this.touchstart, false)
+    document.body.addEventListener('touchmove', this.touchmove, {
+      passive: false
+    })
+    document.body.addEventListener('touchend', this.touchend, false)
+
     document.querySelector('.animated-path').addEventListener('animationend', this.onAnimationEnd, false)
 
     this.setStyles()
   }
 
   beforeDestroy() {
+    document.body.removeEventListener('touchstart', this.touchstart)
+    document.body.removeEventListener('touchmove', this.touchmove)
+    document.body.removeEventListener('touchend', this.touchend)
     document.querySelector('.animated-path').removeEventListener('animationend', this.onAnimationEnd, false)
   }
 }
