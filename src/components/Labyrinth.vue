@@ -98,7 +98,7 @@ export default class Labyrinth extends Vue {
 
   touchPointInterval: number = 0
 
-  frame() {
+  animate() {
     if (this.position >= this.pathLength) {
       this.moving = false
       console.warn('complete!')
@@ -108,7 +108,7 @@ export default class Labyrinth extends Vue {
         this.position += 3 * this.currentSpeed
         this.setStyles()
         this.getContainerPosition()
-        window.requestAnimationFrame(this.frame)
+        window.requestAnimationFrame(this.animate)
       }
     }
   }
@@ -117,7 +117,7 @@ export default class Labyrinth extends Vue {
     this.started = true
     this.moving = true
 
-    this.frame()
+    this.animate()
   }
 
   endAnimation() {
@@ -152,6 +152,7 @@ export default class Labyrinth extends Vue {
 
   getContainerPosition(): void {
     if(this.moving) {
+      // @ts-ignore
       const rect = document.querySelector('.path-container').getBoundingClientRect()
       if (this.lastPassedPoint) {
 
@@ -189,7 +190,9 @@ export default class Labyrinth extends Vue {
 
   mouseleave() {}
 
+  // @ts-ignore
   touchmove(e) {
+    // @ts-ignore
     e.preventDefault()
     // TODO: might need to throttle this? it sounds like chrome may throttle to 200ms by default
     this.getCurrentTouchDirection(e.touches[0].pageX, e.touches[0].pageY)
@@ -223,7 +226,9 @@ export default class Labyrinth extends Vue {
     }
   }
 
+  // @ts-ignore
   onAnimationEnd(e) {
+    // @ts-ignore
     if (e.type === 'animationend') {
       this.finished = true
       this.lastPassedPoint = null
@@ -237,6 +242,7 @@ export default class Labyrinth extends Vue {
     // TODO: some of this should possibly move into a startingLevel method
     var path = document.querySelector('.animated-path')
     if (path) {
+    // @ts-ignore
       this.pathLength = path.getTotalLength()
     }
 
@@ -246,6 +252,7 @@ export default class Labyrinth extends Vue {
     })
     document.body.addEventListener('touchend', this.touchend, false)
 
+    // @ts-ignore
     document.querySelector('.animated-path').addEventListener('animationend', this.onAnimationEnd, false)
 
     this.setStyles()
@@ -255,6 +262,7 @@ export default class Labyrinth extends Vue {
     document.body.removeEventListener('touchstart', this.touchstart)
     document.body.removeEventListener('touchmove', this.touchmove)
     document.body.removeEventListener('touchend', this.touchend)
+    // @ts-ignore
     document.querySelector('.animated-path').removeEventListener('animationend', this.onAnimationEnd, false)
   }
 }
