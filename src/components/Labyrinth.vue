@@ -88,7 +88,8 @@ export default class Labyrinth extends Vue {
   currentSpeed: number = 1
   started: boolean = false
   finished: boolean = false
-  lastPassedPoint: Point | null = null
+  circlePositionWithinLabyrinth: DOMPoint | null = null
+  lastPassedPoint: DOMPoint | null = null
   currentHeading: number | null = null
   currentTouchDirection: number | null = null
 
@@ -125,16 +126,18 @@ export default class Labyrinth extends Vue {
   }
 
   setStyles() {
+    // @ts-ignore
+    this.circlePositionWithinLabyrinth = this.pathElement.getPointAtLength(this.position)
+
     this.animatedPathStyles = `
       display: ${this.started ? 'initial' : 'none'};
       --path-length: ${this.pathLength};
       stroke-dashoffset: ${this.pathLength - this.position};
     `
 
-    // @ts-ignore
-    const circlePositionWithinLabyrinth = this.pathElement.getPointAtLength(this.position)
-
-    this.pathContainerTransform = `translate(-${circlePositionWithinLabyrinth.x},-${circlePositionWithinLabyrinth.y})`
+    if (this.circlePositionWithinLabyrinth) {
+      this.pathContainerTransform = `translate(-${this.circlePositionWithinLabyrinth.x},-${this.circlePositionWithinLabyrinth.y})`
+    }
   }
 
   /**
@@ -148,22 +151,20 @@ export default class Labyrinth extends Vue {
   }
 
   getContainerPosition(): void {
-    // TODO: refactor this once setStyles() is refactored, since we should now already know the container's position
-    if(this.moving) {
-      // @ts-ignore
-      const rect = document.querySelector('.path-container').getBoundingClientRect()
+    // NOTE: needs to be called after setStyles() so circlePositionWithinLabyrinth will be set
+    if(this.moving && this.circlePositionWithinLabyrinth) {
+      const rect = this.circlePositionWithinLabyrinth
       if (this.lastPassedPoint) {
-
-        this.debugHeading = `M 250,250 l ${(rect.left - this.lastPassedPoint.x) * 100},${(rect.top - this.lastPassedPoint.y) * 100}`
-        const distanceBetweenCurrentAndLast = Math.hypot(rect.left - this.lastPassedPoint.x, rect.top - this.lastPassedPoint.y)
+        this.debugHeading = `M 250,250 l ${(rect.x - this.lastPassedPoint.x) * 100},${(rect.y - this.lastPassedPoint.y) * 100}`
+        const distanceBetweenCurrentAndLast = Math.hypot(rect.x - this.lastPassedPoint.x, rect.y - this.lastPassedPoint.y)
         if (distanceBetweenCurrentAndLast > 1) {
-          this.currentHeading = this.calculateHeading(this.lastPassedPoint.x, this.lastPassedPoint.y, rect.left, rect.top)
+          this.currentHeading = this.calculateHeading(this.lastPassedPoint.x, this.lastPassedPoint.y, rect.x, rect.y)
           this.calculateSpeed()
-          this.lastPassedPoint = { x: rect.left, y: rect.top }
+          this.lastPassedPoint = this.circlePositionWithinLabyrinth
         }
       } else {
         this.currentSpeed = 1
-        this.lastPassedPoint = { x: rect.left, y: rect.top }
+        this.lastPassedPoint = this.circlePositionWithinLabyrinth
       }
     }
   }
@@ -217,9 +218,9 @@ export default class Labyrinth extends Vue {
         x: circleRect.left + (circleRect.width / 2),
         y: circleRect.top + (circleRect.height / 2)
       }
-      this.currentTouchDirection = this.calculateHeading(x, y, circlePosition.x, circlePosition.y)
+      this.currentTouchDirection = this.calculateHeading(circlePosition.x, circlePosition.y, x, y)
 
-      this.debugTouchDirection = `M 250,250 l ${circlePosition.x - x},${circlePosition.y - y}`
+      this.debugTouchDirection = `M 250,250 l ${x - circlePosition.x},${y - circlePosition.y}`
       this.calculateSpeed()
     }
   }
