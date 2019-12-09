@@ -79,7 +79,7 @@ export default class Labyrinth extends Vue {
   pathElement: Element | null = null
   debugHeading: string = ''
   debugTouchDirection: string = ''
-  debugMode: boolean = true
+  debugMode: boolean = false
 
   moving: boolean = false
   pathLength: number = 0
@@ -238,6 +238,9 @@ export default class Labyrinth extends Vue {
   }
 
   mounted() {
+    if (process.env.NODE_ENV === 'development') {
+      this.debugMode = true
+    }
     // TODO: some of this should possibly move into a startingLevel method
     this.pathElement = document.querySelector('.animated-path')
     if (this.pathElement) {
