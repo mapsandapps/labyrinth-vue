@@ -2,57 +2,56 @@
   <div
     class="labyrinth-container">
     <svg
-      viewBox="0 0 500 500"
-      @mousedown="mousedown"
-      @mouseup="mouseup"
-      @mouseleave="mouseleave"
-      @mouseout="mouseout"
-      @mousemove="mousemove">
+      @mousedown="onMousedown"
+      @mouseup="onMouseup"
+      @mouseleave="onMouseleave"
+      @mouseout="onMouseout"
+      @mousemove="onMousemove">
       <g
         class="path-container"
         :transform="pathContainerTransform">
         <path
           class="outline"
           stroke="#B58A47"
-          stroke-width="14"
+          stroke-width="28"
           fill="none"
           :d="pathD"
-          transform="translate(250, 250)" />
+          :transform="`translate(${this.windowWidth / 2}, ${this.windowHeight / 2 })`" />
         <path
           class="outline"
           stroke="#546e7a"
-          stroke-width="12"
+          stroke-width="24"
           fill="none"
           :d="pathD"
-          transform="translate(250, 250)" />
+          :transform="`translate(${this.windowWidth / 2}, ${this.windowHeight / 2 })`" />
         <path
           id="animated-path"
           class="animated-path"
           :style="animatedPathStyles"
           :d="pathD"
           stroke="#B58A47"
-          stroke-width="8"
+          stroke-width="16"
           fill="none"
-          transform="translate(250, 250)" />
+          :transform="`translate(${this.windowWidth / 2}, ${this.windowHeight / 2 })`" />
       </g>
       <g>
         <circle
           class="position"
-          cx="250"
-          cy="250"
-          r="8"
+          :cx="this.windowWidth / 2"
+          :cy="this.windowHeight / 2"
+          r="16"
           fill="#FFCD7D" />
       </g>
       <g v-if="debugMode">
         <path
           :d="debugHeading"
           stroke="#ff6063"
-          stroke-width="2"
+          stroke-width="4"
           fill="none" />
         <path
           :d="debugTouchDirection"
           stroke="#a991e8"
-          stroke-width="2"
+          stroke-width="4"
           fill="none" />
       </g>
     </svg>
@@ -72,10 +71,12 @@ type Point = {
 
 @Component
 export default class Labyrinth extends Vue {
+  windowWidth = window.innerWidth
+  windowHeight = window.innerHeight
   // pathD: string = 'M 512,64 a 192,192 0 0,1 192,192 a 192,192 0 0,1 -192,192 a 256,256 0 0,0 256,-256 a 320,320 0 0,1 -320,320 a 192,192 0 0,1 -192,-192 a 128,128 0 0,0 128,128 a 64,64 0 0,0 64,-64 a 64,64 0 0,1 64,-64 a 64,64 0 0,0 64,-64 a 64,64 0 0,0 -64,-64 a 64,64 0 0,0 -64,64 a 64,64 0 0,1 -64,64 a 128,128 0 0,1 -128,-128'
   // pathD: string = 'm81.5,177.453125c24,-68 54,-11 53.5,-11.453125c0.5,0.453125 75.5,-38.546875 75,-39c0.5,0.453125 58.5,35.453125 7.5,81.453125c-51,46 -78,82 -108,48c-30,-34 -29,-149 9,-166c38,-17 86,79 77,94c-9,15 -39,117 14,102c53,-15 105,-74 74,-93c-31,-19 37,-13 36.5,-13.453125c0.5,0.453125 82.5,51.453125 82,51c0.5,0.453125 56.5,96.453125 -47.5,83.453125c-104,-13 -176,-86 -94,-133c82,-47 -24,-79 -24,-79c0,0 -66,-49 -66.5,-49.453125'
   // pathD: string = 'A 30.452 30.452 0 1 0 50.819 108.959 A 112.145 112.145 0 0 1 43.776 184.373 A 88.036 88.036 0 0 0 110.322 308.719 A 56.629 56.629 0 0 0 165.385 220.519 A 42.422 42.422 0 0 0 90.266 231.177 A 21.548000000000002 21.548000000000002 0 1 1 65.497 203.234 A 316.903 316.903 0 0 1 140.087 196.942 A 78.617 78.617 0 0 0 179.867 187.689 A 19.635 19.635 0 1 0 150.974 170.824 A 18.055 18.055 0 1 1 120.591 158.047 A 81.875 81.875 0 0 0 70.157 16.558 A 57.009 57.009 0 0 0 25.563 113.286 A 24.631 24.631 0 0 1 21.449 151.104 A 26.21 26.21 0 0 0 10.639 180.318 A 76.971 76.971 0 0 0 132.69 218.979 A 48.536 48.536 0 0 1 201.226 226.912'
-  pathD: string = 'M 16 19.397 C 16 2.645 69.464 37.313 80 43.397 L 272 155.397 C 282.536 161.481 336 196.149 336 179.397 C 335.956 130.133 282.596 99.461 239.952 124.077 C 220.16 135.497 207.98 156.585 208 179.397 C 208 196.149 261.464 161.481 272 155.397 L 464 43.397 C 474.536 37.313 528 2.645 528 19.397 C 527.956 68.661 474.596 99.333 431.952 74.717 C 412.16 63.297 399.98 42.209 400 19.397 C 400 2.645 453.464 37.313 464 43.397 L 656 155.397 C 666.536 161.481 720 196.149 720 179.397 C 719.956 130.133 666.596 99.461 623.952 124.077 C 604.16 135.497 591.98 156.585 592 179.397 C 592 196.149 645.464 161.481 656 155.397 C 658.824 153.757 720 115.397 720 99.397 C 720 83.397 656 43.397 656 43.397 C 645.464 37.313 592 2.645 592 19.397 C 592.044 68.661 645.404 99.333 688.048 74.717 C 707.84 63.297 720.02 42.209 720 19.397 C 720 2.645 666.536 37.313 656 43.397 L 464 155.397 C 453.464 161.481 400 196.149 400 179.397 C 400.044 130.133 453.404 99.461 496.048 124.077 C 515.84 135.497 528.02 156.585 528 179.397 C 528 196.149 474.536 161.481 464 155.397 L 272 43.397 C 261.464 37.313 208 2.645 208 19.397 C 208.044 68.661 261.404 99.333 304.048 74.717 C 323.84 63.297 336.02 42.209 336 19.397 C 336 2.645 282.536 37.313 272 43.397 L 80 155.397 C 69.464 161.481 16 196.149 16 179.397 C 16.044 130.133 69.404 99.461 112.048 124.077 C 131.84 135.497 144.02 156.585 144 179.397 C 144 196.149 90.536 161.481 80 155.397 C 77.176 153.757 16 115.397 16 99.397 C 16 83.397 80 43.397 80 43.397 C 90.536 37.313 144 2.645 144 19.397 C 143.956 68.661 90.596 99.333 47.952 74.717 C 28.16 63.297 15.98 42.209 16 19.397'
+  pathD: string = 'M 16 23.926 C 16 -9.578 122.928 59.758 144 71.926 L 528 295.926 C 549.072 308.094 656 377.43 656 343.926 C 655.912 245.398 549.192 184.054 463.904 233.286 C 424.32 256.126 399.96 298.302 400 343.926 C 400 377.43 506.928 308.094 528 295.926 L 912 71.926 C 933.072 59.758 1040 -9.578 1040 23.926 C 1039.912 122.454 933.192 183.798 847.904 134.566 C 808.32 111.726 783.96 69.55 784 23.926 C 784 -9.578 890.928 59.758 912 71.926 L 1296 295.926 C 1317.072 308.094 1424 377.43 1424 343.926 C 1423.912 245.398 1317.192 184.054 1231.904 233.286 C 1192.32 256.126 1167.96 298.302 1168 343.926 C 1168 377.43 1274.928 308.094 1296 295.926 C 1301.648 292.646 1424 215.926 1424 183.926 C 1424 151.926 1296 71.926 1296 71.926 C 1274.928 59.758 1168 -9.578 1168 23.926 C 1168.088 122.454 1274.808 183.798 1360.096 134.566 C 1399.68 111.726 1424.04 69.55 1424 23.926 C 1424 -9.578 1317.072 59.758 1296 71.926 L 912 295.926 C 890.928 308.094 784 377.43 784 343.926 C 784.088 245.398 890.808 184.054 976.096 233.286 C 1015.68 256.126 1040.04 298.302 1040 343.926 C 1040 377.43 933.072 308.094 912 295.926 L 528 71.926 C 506.928 59.758 400 -9.578 400 23.926 C 400.088 122.454 506.808 183.798 592.096 134.566 C 631.68 111.726 656.04 69.55 656 23.926 C 656 -9.578 549.072 59.758 528 71.926 L 144 295.926 C 122.928 308.094 16 377.43 16 343.926 C 16.088 245.398 122.808 184.054 208.096 233.286 C 247.68 256.126 272.04 298.302 272 343.926 C 272 377.43 165.072 308.094 144 295.926 C 138.352 292.646 16 215.926 16 183.926 C 16 151.926 144 71.926 144 71.926 C 165.072 59.758 272 -9.578 272 23.926 C 271.912 122.454 165.192 183.798 79.904 134.566 C 40.32 111.726 15.96 69.55 16 23.926'
   pathElement: Element | null = null
   debugHeading: string = ''
   debugTouchDirection: string = ''
@@ -155,7 +156,7 @@ export default class Labyrinth extends Vue {
     if(this.moving && this.circlePositionWithinLabyrinth) {
       const rect = this.circlePositionWithinLabyrinth
       if (this.lastPassedPoint) {
-        this.debugHeading = `M 250,250 l ${(rect.x - this.lastPassedPoint.x) * 100},${(rect.y - this.lastPassedPoint.y) * 100}`
+        this.debugHeading = `M ${this.windowWidth / 2},${this.windowHeight / 2} l ${(rect.x - this.lastPassedPoint.x) * 100},${(rect.y - this.lastPassedPoint.y) * 100}`
         const distanceBetweenCurrentAndLast = Math.hypot(rect.x - this.lastPassedPoint.x, rect.y - this.lastPassedPoint.y)
         if (distanceBetweenCurrentAndLast > 1) {
           this.currentHeading = this.calculateHeading(this.lastPassedPoint.x, this.lastPassedPoint.y, rect.x, rect.y)
@@ -169,35 +170,35 @@ export default class Labyrinth extends Vue {
     }
   }
 
-  touchstart(): void {
+  onTouchstart(): void {
     this.beginAnimation()
   }
 
-  mousedown(): void {
+  onMousedown(): void {
     this.beginAnimation()
   }
 
-  touchend(): void {
+  onTouchend(): void {
     this.endAnimation()
   }
 
-  mouseup(): void {
+  onMouseup(): void {
     this.endAnimation()
   }
 
-  mouseout() {}
+  onMouseout() {}
 
-  mouseleave() {}
+  onMouseleave() {}
 
   // @ts-ignore
-  touchmove(e) {
+  onTouchmove(e) {
     // @ts-ignore
     e.preventDefault()
     // TODO: might need to throttle this? it sounds like chrome may throttle to 200ms by default
     this.getCurrentTouchDirection(e.touches[0].pageX, e.touches[0].pageY)
   }
 
-  mousemove = bind(throttle(e => this.getCurrentTouchDirection(e.x, e.y), 50, {
+  onMousemove = bind(throttle(e => this.getCurrentTouchDirection(e.x, e.y), 50, {
     leading: true
   }), this)
 
@@ -220,7 +221,7 @@ export default class Labyrinth extends Vue {
       }
       this.currentTouchDirection = this.calculateHeading(circlePosition.x, circlePosition.y, x, y)
 
-      this.debugTouchDirection = `M 250,250 l ${x - circlePosition.x},${y - circlePosition.y}`
+      this.debugTouchDirection = `M ${this.windowWidth / 2},${this.windowHeight / 2} l ${x - circlePosition.x},${y - circlePosition.y}`
       this.calculateSpeed()
     }
   }
@@ -237,6 +238,11 @@ export default class Labyrinth extends Vue {
     }
   }
 
+  onWindowResize(): void {
+    this.windowWidth = window.innerWidth
+    this.windowHeight = window.innerHeight
+  }
+
   mounted() {
     if (process.env.NODE_ENV === 'development') {
       this.debugMode = true
@@ -248,11 +254,12 @@ export default class Labyrinth extends Vue {
       this.pathLength = this.pathElement.getTotalLength()
     }
 
-    document.body.addEventListener('touchstart', this.touchstart, false)
-    document.body.addEventListener('touchmove', this.touchmove, {
+    document.body.addEventListener('touchstart', this.onTouchstart, false)
+    document.body.addEventListener('touchmove', this.onTouchmove, {
       passive: false
     })
-    document.body.addEventListener('touchend', this.touchend, false)
+    document.body.addEventListener('touchend', this.onTouchend, false)
+    window.addEventListener('resize', this.onWindowResize)
 
     // @ts-ignore
     document.querySelector('.animated-path').addEventListener('animationend', this.onAnimationEnd, false)
@@ -261,9 +268,10 @@ export default class Labyrinth extends Vue {
   }
 
   beforeDestroy() {
-    document.body.removeEventListener('touchstart', this.touchstart)
-    document.body.removeEventListener('touchmove', this.touchmove)
-    document.body.removeEventListener('touchend', this.touchend)
+    document.body.removeEventListener('touchstart', this.onTouchstart)
+    document.body.removeEventListener('touchmove', this.onTouchmove)
+    document.body.removeEventListener('touchend', this.onTouchend)
+    window.removeEventListener('resize', this.onWindowResize)
     // @ts-ignore
     document.querySelector('.animated-path').removeEventListener('animationend', this.onAnimationEnd, false)
   }
