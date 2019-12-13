@@ -1,6 +1,7 @@
 <template>
   <div
-    class="labyrinth-container">
+    class="labyrinth-container"
+    :style="{ backgroundColor: this.theme.background }">
     <svg
       @mousedown="onMousedown"
       @mouseup="onMouseup"
@@ -12,14 +13,14 @@
         :transform="pathContainerTransform">
         <path
           class="outline"
-          stroke="#B58A47"
-          stroke-width="28"
+          :stroke="this.theme.border"
+          :stroke-width="this.theme.borderWidth + 24 || 28"
           fill="none"
           :d="pathD"
           :transform="`translate(${this.windowWidth / 2}, ${this.windowHeight / 2 })`" />
         <path
           class="outline"
-          stroke="#546e7a"
+          :stroke="this.theme.fullPath"
           stroke-width="24"
           fill="none"
           :d="pathD"
@@ -29,7 +30,7 @@
           class="animated-path"
           :style="animatedPathStyles"
           :d="pathD"
-          stroke="#B58A47"
+          :stroke="this.theme.playerPath"
           stroke-width="16"
           fill="none"
           :transform="`translate(${this.windowWidth / 2}, ${this.windowHeight / 2 })`" />
@@ -39,8 +40,8 @@
           class="position"
           :cx="this.windowWidth / 2"
           :cy="this.windowHeight / 2"
-          r="16"
-          fill="#FFCD7D" />
+          r="20"
+          :fill="this.theme.player" />
       </g>
       <g v-if="debugMode">
         <path
@@ -63,13 +64,22 @@
 <script lang="ts">
 import { Component, Prop, Vue } from 'vue-property-decorator'
 import { bind, throttle } from 'lodash'
+import { mapGetters } from 'vuex'
+import store from '../store'
 
 type Point = {
   x: number
   y: number
 }
 
-@Component
+@Component({
+  computed: {
+    ...mapGetters({
+      theme: 'getRandomTheme'
+    })
+  }
+})
+
 export default class Labyrinth extends Vue {
   windowWidth = window.innerWidth
   windowHeight = window.innerHeight
@@ -245,7 +255,7 @@ export default class Labyrinth extends Vue {
 
   mounted() {
     if (process.env.NODE_ENV === 'development') {
-      this.debugMode = true
+      // this.debugMode = true
     }
     // TODO: some of this should possibly move into a startingLevel method
     this.pathElement = document.querySelector('.animated-path')
