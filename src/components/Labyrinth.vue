@@ -3,6 +3,7 @@
     class="labyrinth-container"
     :style="{ backgroundColor: this.theme.background }">
     <svg
+      v-if="this.level.path"
       @mousedown="onMousedown"
       @mouseup="onMouseup"
       @mouseleave="onMouseleave"
@@ -75,7 +76,7 @@ type Point = {
 @Component({
   computed: {
     ...mapGetters({
-      level: 'getRandomLevel',
+      level: 'getCurrentLevel',
       theme: 'getRandomTheme'
     })
   }
@@ -109,8 +110,7 @@ export default class Labyrinth extends Vue {
   animate() {
     if (this.position >= this.pathLength) {
       this.moving = false
-      console.warn('complete!')
-
+      this.advanceToNextLevel()
     } else {
       if (this.moving) {
         this.position += 3 * this.currentSpeed
@@ -119,6 +119,15 @@ export default class Labyrinth extends Vue {
         window.requestAnimationFrame(this.animate)
       }
     }
+  }
+
+  advanceToNextLevel() {
+    console.warn('complete!')
+
+    // @ts-ignore
+    document.getElementById('animated-path').removeEventListener('animationend', this.onAnimationEnd, false)
+
+    this.beginLevel()
   }
 
   beginAnimation() {
@@ -250,18 +259,42 @@ export default class Labyrinth extends Vue {
     this.windowHeight = window.innerHeight
   }
 
-  mounted() {
+  setupLevel() {
     if (process.env.NODE_ENV === 'development') {
       // this.debugMode = true
     }
 
-    // TODO: some of this should possibly move into a startingLevel method
-    this.pathElement = document.querySelector('.animated-path')
-    if (this.pathElement) {
-    // @ts-ignore
-      this.pathLength = this.pathElement.getTotalLength()
-    }
+    this.position = 0
+    this.moving = false
+    this.started = false
+    this.finished = false
+    this.lastPassedPoint = null
+    this.currentHeading = null
+    this.currentTouchDirection = null
 
+    // @ts-ignore
+    this.pathElement = document.getElementById('animated-path')
+    // @ts-ignore
+    this.pathLength = this.pathElement.getTotalLength()
+
+    // @ts-ignore
+    this.pathElement.addEventListener('animationend', this.onAnimationEnd, false)
+
+    this.setStyles()
+  }
+
+  beginLevel() {
+    store.commit('setCurrentLevel')
+
+    setTimeout(bind(function(){
+    // wait for svg to paint the new level
+    // TODO: make this longer (just in case) and do some animation or something to hide it
+    // @ts-ignore
+      this.setupLevel()
+    }, this), 100)
+  }
+
+  mounted() {
     document.body.addEventListener('touchstart', this.onTouchstart, false)
     document.body.addEventListener('touchmove', this.onTouchmove, {
       passive: false
@@ -269,10 +302,7 @@ export default class Labyrinth extends Vue {
     document.body.addEventListener('touchend', this.onTouchend, false)
     window.addEventListener('resize', this.onWindowResize)
 
-    // @ts-ignore
-    document.querySelector('.animated-path').addEventListener('animationend', this.onAnimationEnd, false)
-
-    this.setStyles()
+    this.beginLevel()
   }
 
   beforeDestroy() {
