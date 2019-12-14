@@ -65,7 +65,7 @@
 <script lang="ts">
 import { Component, Prop, Vue } from 'vue-property-decorator'
 import { bind, throttle } from 'lodash'
-import { mapGetters } from 'vuex'
+import { mapGetters, mapState } from 'vuex'
 import store from '../store'
 
 type Point = {
@@ -78,6 +78,24 @@ type Point = {
     ...mapGetters({
       level: 'getCurrentLevel',
       theme: 'getRandomTheme'
+    }),
+    ...mapState('movement', {
+      animatedPathStyles: 'animatedPathStyles',
+      circlePositionWithinLabyrinth: 'circlePositionWithinLabyrinth',
+      currentHeading: 'currentHeading',
+      currentSpeed: 'currentSpeed',
+      currentTouchDirection: 'currentTouchDirection',
+      debugHeading: 'debugHeading',
+      debugMode: 'debugMode',
+      debugTouchDirection: 'debugTouchDirection',
+      finished: 'finished',
+      lastPassedPoint: 'lastPassedPoint',
+      moving: 'moving',
+      pathContainerTransform: 'pathContainerTransform',
+      pathElement: 'pathElement',
+      pathLength: 'pathLength',
+      position: 'position',
+      started: 'started'
     })
   }
 })
@@ -85,35 +103,16 @@ type Point = {
 export default class Labyrinth extends Vue {
   windowWidth = window.innerWidth
   windowHeight = window.innerHeight
-  pathElement: Element | null = null
-  debugHeading: string = ''
-  debugTouchDirection: string = ''
-  debugMode: boolean = false
 
-  moving: boolean = false
-  pathLength: number = 0
-  position: number = 0
   DURATION_MULTIPLIER: number = 10
-  currentSpeed: number = 1
-  started: boolean = false
-  finished: boolean = false
-  circlePositionWithinLabyrinth: DOMPoint | null = null
-  lastPassedPoint: DOMPoint | null = null
-  currentHeading: number | null = null
-  currentTouchDirection: number | null = null
-
-  animatedPathStyles: string = ''
-  pathContainerTransform: string = ''
-
-  touchPointInterval: number = 0
 
   animate() {
     if (this.position >= this.pathLength) {
-      this.moving = false
+      store.commit('movement/setMoving', false)
       this.advanceToNextLevel()
     } else {
       if (this.moving) {
-        this.position += 3 * this.currentSpeed
+        store.commit('movement/setPosition', this.position + 3 * this.currentSpeed)
         this.setStyles()
         this.getContainerPosition()
         window.requestAnimationFrame(this.animate)
@@ -131,29 +130,30 @@ export default class Labyrinth extends Vue {
   }
 
   beginAnimation() {
-    this.started = true
-    this.moving = true
+    store.commit('movement/setStarted', true)
+    store.commit('movement/setMoving', true)
 
     this.animate()
   }
 
   endAnimation() {
-    this.moving = false
-    window.clearInterval(this.touchPointInterval)
+    store.commit('movement/setMoving', false)
   }
 
   setStyles() {
     // @ts-ignore
-    this.circlePositionWithinLabyrinth = this.pathElement.getPointAtLength(this.position)
+    store.commit('movement/setCirclePositionWithinLabyrinth', this.pathElement.getPointAtLength(this.position))
 
-    this.animatedPathStyles = `
+    const animatedPathStyles = `
       display: ${this.started ? 'initial' : 'none'};
       --path-length: ${this.pathLength};
       stroke-dashoffset: ${this.pathLength - this.position};
     `
+    store.commit('movement/setAnimatedPathStyles', animatedPathStyles)
 
     if (this.circlePositionWithinLabyrinth) {
-      this.pathContainerTransform = `translate(-${this.circlePositionWithinLabyrinth.x},-${this.circlePositionWithinLabyrinth.y})`
+      const pathContainerTransform = `translate(-${this.circlePositionWithinLabyrinth.x},-${this.circlePositionWithinLabyrinth.y})`
+      store.commit('movement/setPathContainerTransform', pathContainerTransform)
     }
   }
 
@@ -172,16 +172,20 @@ export default class Labyrinth extends Vue {
     if(this.moving && this.circlePositionWithinLabyrinth) {
       const rect = this.circlePositionWithinLabyrinth
       if (this.lastPassedPoint) {
-        this.debugHeading = `M ${this.windowWidth / 2},${this.windowHeight / 2} l ${(rect.x - this.lastPassedPoint.x) * 100},${(rect.y - this.lastPassedPoint.y) * 100}`
+        let debugHeading = `M ${this.windowWidth / 2},${this.windowHeight / 2} l ${(rect.x - this.lastPassedPoint.x) * 100},${(rect.y - this.lastPassedPoint.y) * 100}`
+        store.commit('movement/setDebugHeading', debugHeading)
+
         const distanceBetweenCurrentAndLast = Math.hypot(rect.x - this.lastPassedPoint.x, rect.y - this.lastPassedPoint.y)
         if (distanceBetweenCurrentAndLast > 1) {
-          this.currentHeading = this.calculateHeading(this.lastPassedPoint.x, this.lastPassedPoint.y, rect.x, rect.y)
+          const currentHeading = this.calculateHeading(this.lastPassedPoint.x, this.lastPassedPoint.y, rect.x, rect.y)
+          store.commit('movement/setCurrentHeading', currentHeading)
+
           this.calculateSpeed()
-          this.lastPassedPoint = this.circlePositionWithinLabyrinth
+          store.commit('movement/setLastPassedPoint', this.circlePositionWithinLabyrinth)
         }
       } else {
-        this.currentSpeed = 1
-        this.lastPassedPoint = this.circlePositionWithinLabyrinth
+        store.commit('movement/setCurrentSpeed', 1)
+        store.commit('movement/setLastPassedPoint', this.circlePositionWithinLabyrinth)
       }
     }
   }
@@ -221,7 +225,8 @@ export default class Labyrinth extends Vue {
   calculateSpeed(): void {
     if (typeof this.currentHeading === 'number' && typeof this.currentTouchDirection === 'number') {
       const inverseSpeed = Math.abs(this.currentHeading - this.currentTouchDirection) // 0 to 180
-      this.currentSpeed = Math.max(90 - inverseSpeed, 0) / 90 // 0 to 1
+
+      store.commit('movement/setCurrentSpeed', Math.max(90 - inverseSpeed, 0) / 90) // 0 to 1
     }
   }
 
@@ -235,9 +240,13 @@ export default class Labyrinth extends Vue {
         x: circleRect.left + (circleRect.width / 2),
         y: circleRect.top + (circleRect.height / 2)
       }
-      this.currentTouchDirection = this.calculateHeading(circlePosition.x, circlePosition.y, x, y)
 
-      this.debugTouchDirection = `M ${this.windowWidth / 2},${this.windowHeight / 2} l ${x - circlePosition.x},${y - circlePosition.y}`
+      const currentTouchDirection = this.calculateHeading(circlePosition.x, circlePosition.y, x, y)
+      store.commit('movement/setCurrentTouchDirection', currentTouchDirection)
+
+      const debugTouchDirection = `M ${this.windowWidth / 2},${this.windowHeight / 2} l ${x - circlePosition.x},${y - circlePosition.y}`
+      store.commit('movement/setDebugTouchDirection', debugTouchDirection)
+
       this.calculateSpeed()
     }
   }
@@ -246,11 +255,11 @@ export default class Labyrinth extends Vue {
   onAnimationEnd(e) {
     // @ts-ignore
     if (e.type === 'animationend') {
-      this.finished = true
-      this.lastPassedPoint = null
-      this.currentHeading = null
-      this.currentTouchDirection = null
-      this.currentSpeed = 1
+      store.commit('movement/setFinished', true)
+      store.commit('movement/setLastPassedPoint', null)
+      store.commit('movement/setCurrentHeading', null)
+      store.commit('movement/setCurrentTouchDirection', null)
+      store.commit('movement/setCurrentSpeed', 1)
     }
   }
 
@@ -261,21 +270,22 @@ export default class Labyrinth extends Vue {
 
   setupLevel() {
     if (process.env.NODE_ENV === 'development') {
-      // this.debugMode = true
+      store.commit('movement/setDebugMode', true)
     }
 
-    this.position = 0
-    this.moving = false
-    this.started = false
-    this.finished = false
-    this.lastPassedPoint = null
-    this.currentHeading = null
-    this.currentTouchDirection = null
+    // TODO: refactor this with onAnimationEnd (some repeats)
+    store.commit('movement/setPosition', 0)
+    store.commit('movement/setMoving', false)
+    store.commit('movement/setStarted', false)
+    store.commit('movement/setFinished', false)
+    store.commit('movement/setLastPassedPoint', null)
+    store.commit('movement/setCurrentHeading', null)
+    store.commit('movement/setCurrentTouchDirection', null)
 
     // @ts-ignore
-    this.pathElement = document.getElementById('animated-path')
+    store.commit('movement/setPathElement', document.getElementById('animated-path'))
     // @ts-ignore
-    this.pathLength = this.pathElement.getTotalLength()
+    store.commit('movement/setPathLength', this.pathElement.getTotalLength())
 
     // @ts-ignore
     this.pathElement.addEventListener('animationend', this.onAnimationEnd, false)
