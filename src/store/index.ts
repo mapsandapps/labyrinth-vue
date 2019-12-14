@@ -81,6 +81,13 @@ export default new Vuex.Store({
         fullPath: '#f4dbb2',
         background: '#b4c6d6',
         border: '#34538a'
+      },
+      {
+        player: 'rgb(43, 170, 207)',
+        playerPath: 'rgb(43, 170, 207)',
+        fullPath: 'rgb(239, 240, 225)',
+        background: 'white',
+        border: 'rgb(239, 240, 225)'
       }
     ]
   },

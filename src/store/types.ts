@@ -18,3 +18,8 @@ export type MovementStoreState = {
   windowHeight: number
   windowWidth: number
 }
+
+export type Point = {
+  x: number
+  y: number
+}
