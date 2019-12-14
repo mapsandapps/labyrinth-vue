@@ -6,6 +6,7 @@ import { MovementStoreState, Point } from './types'
 Vue.use(Vuex)
 
 const SPEED_MULTIPLIER = 3
+const WAYPOINT_DISTANCE = 5 // how far ahead the waypoint is of the current player position, in pathLength units
 
 /**
  * Calculates the direction the circle is "moving" along the line, where 0 is up, 90 is right, etc.
@@ -28,13 +29,13 @@ const movementStoreState: MovementStoreState = {
   debugMode: false,
   debugTouchDirection: '',
   finished: false,
-  lastPassedPoint: null,
   moving: false,
   pathContainerTransform: '',
   pathElement: null,
   pathLength: 0,
   position: 0,
   started: false,
+  waypoint: {x: 0, y: 0},
   windowHeight: 0,
   windowWidth: 0
 }
@@ -67,9 +68,6 @@ export const mutations: MutationTree<MovementStoreState> = {
   setFinished(state, payload) {
     state.finished = payload
   },
-  setLastPassedPoint(state, payload) {
-    state.lastPassedPoint = payload
-  },
   setMoving(state, payload) {
     state.moving = payload
   },
@@ -87,6 +85,9 @@ export const mutations: MutationTree<MovementStoreState> = {
   },
   setStarted(state, payload) {
     state.started = payload
+  },
+  setWaypoint(state, payload) {
+    state.waypoint = payload
   },
   setWindowSize(state, payload) {
     state.windowWidth = payload.width
@@ -119,7 +120,7 @@ export const actions = {
       if (state.moving) {
         commit('setPosition', state.position + SPEED_MULTIPLIER * state.currentSpeed)
         dispatch('setStyles')
-        dispatch('getContainerPosition')
+        dispatch('calculateWaypoint')
         window.requestAnimationFrame(recurse)
       }
     }
@@ -147,27 +148,24 @@ export const actions = {
       commit('setCurrentSpeed', Math.max(90 - inverseSpeed, 0) / 90) // 0 to 1
     }
   },
-  // FIXME: these should probably be renamed something not beginning in 'get'
-  getContainerPosition({ commit, dispatch, state }: any) {
+  /**
+   * finds a waypoint WAYPOINT_DISTANCE ahead of the player's position and sets the heading based on it
+   */
+  calculateWaypoint({ commit, dispatch, state }: any) {
     // NOTE: needs to be called after setStyles() so circlePositionWithinLabyrinth will be set
-    if(state.moving && state.circlePositionWithinLabyrinth) {
+    if (state.moving && state.circlePositionWithinLabyrinth) {
       const rect = state.circlePositionWithinLabyrinth
-      if (state.lastPassedPoint) {
-        const debugHeading = `M ${state.windowWidth / 2},${state.windowHeight / 2} l ${(rect.x - state.lastPassedPoint.x) * 100},${(rect.y - state.lastPassedPoint.y) * 100}`
-        commit('setDebugHeading', debugHeading)
+      const waypoint = state.pathElement.getPointAtLength(state.position + WAYPOINT_DISTANCE)
+      commit('setWaypoint', waypoint)
+      const debugHeading = `M ${state.windowWidth / 2},${state.windowHeight / 2} l ${(waypoint.x - rect.x) * 10},${(waypoint.y - rect.y) * 10}`
+      commit('setDebugHeading', debugHeading)
 
-        const distanceBetweenCurrentAndLast = Math.hypot(rect.x - state.lastPassedPoint.x, rect.y - state.lastPassedPoint.y)
-        if (distanceBetweenCurrentAndLast > 1) {
-          const currentHeading = calculateHeading(state.lastPassedPoint.x, state.lastPassedPoint.y, rect.x, rect.y)
-          commit('setCurrentHeading', currentHeading)
+      const currentHeading = calculateHeading(rect.x, rect.y, waypoint.x, waypoint.y)
+      commit('setCurrentHeading', currentHeading)
 
-          dispatch('calculateSpeed')
-          commit('setLastPassedPoint', state.circlePositionWithinLabyrinth)
-        }
-      } else {
-        commit('setCurrentSpeed', 1)
-        commit('setLastPassedPoint', state.circlePositionWithinLabyrinth)
-      }
+      dispatch('calculateSpeed')
+    } else {
+      commit('setCurrentSpeed', 1)
     }
   },
   getCurrentTouchDirection({ commit, dispatch, state }: any, touchPosition: Point) {
@@ -231,7 +229,6 @@ export const actions = {
   },
   stopMovement({ commit }: any) {
     commit('setFinished', true)
-    commit('setLastPassedPoint', null)
     commit('setCurrentHeading', null)
     commit('setCurrentTouchDirection', null)
     commit('setCurrentSpeed', 1)
