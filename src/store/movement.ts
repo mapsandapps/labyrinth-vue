@@ -12,7 +12,6 @@ const WAYPOINT_DISTANCE = 5 // how far ahead the waypoint is of the current play
  * Calculates the direction the circle is "moving" along the line, where 0 is up, 90 is right, etc.
  * Also used to calculate the position of the cursor/finger relative to the circle
  */
-// const calculateHeading: number = (firstX: number, firstY: number, secondX: number, secondY: number) => {
 const calculateHeading = (firstX: number, firstY: number, secondX: number, secondY: number) => {
   const radians = Math.atan2(firstX - secondX, secondY - firstY)
   const degrees = radians * (180 / Math.PI)
@@ -96,9 +95,15 @@ export const mutations: MutationTree<MovementStoreState> = {
 }
 
 export const actions = {
-  advanceToNextLevel({ commit, dispatch, state }: any) {
+  advanceToNextLevel({ commit, dispatch, state, rootState }: any) {
     console.warn('complete!')
     commit('setMoving', false)
+
+    if (rootState.gameMode === 'linear') {
+      commit('setCurrentLevel', rootState.currentLevelIndex + 1, { root: true })
+    } else {
+      commit('setRandomLevel', null, { root: true })
+    }
 
     // @ts-ignore
     document.getElementById('animated-path').removeEventListener('animationend', state.onAnimationEnd, false)
@@ -131,8 +136,10 @@ export const actions = {
 
     dispatch('animate')
   },
-  beginLevel({ commit, dispatch }: any) {
-    commit('setCurrentLevel', null, { root: true })
+  beginLevel({ commit, dispatch, rootState }: any) {
+    if (!rootState.currentLevelIndex) {
+      commit('setRandomLevel', null, { root: true })
+    }
 
     setTimeout(bind(function() {
       // wait for svg to paint the new level
@@ -190,6 +197,10 @@ export const actions = {
   },
   endAnimation({ commit }: any) {
     commit('setMoving', false)
+  },
+  removeListeners({ state }: any) {
+    // @ts-ignore
+    state.pathElement.removeEventListener('animationend', state.onAnimationEnd, false)
   },
   setStyles({ commit, state }: any) {
     // @ts-ignore

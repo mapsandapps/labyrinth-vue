@@ -1,18 +1,12 @@
 <template>
   <div id="app">
-    <Labyrinth />
+    <router-view />
   </div>
 </template>
 
 <script lang="ts">
-import { Component, Vue } from 'vue-property-decorator';
-import Labyrinth from './components/Labyrinth.vue';
+import { Vue } from 'vue-property-decorator';
 
-@Component({
-  components: {
-    Labyrinth,
-  },
-})
 export default class App extends Vue {}
 </script>
 

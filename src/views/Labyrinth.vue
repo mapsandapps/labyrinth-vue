@@ -39,8 +39,8 @@
           class="position"
           :cx="this.windowWidth / 2"
           :cy="this.windowHeight / 2"
-          r="20"
-          :fill="this.theme.player" />
+          r="8"
+          :fill="this.theme.playerPath" />
       </g>
       <g v-if="debugMode">
         <path
@@ -150,12 +150,11 @@ export default class Labyrinth extends Vue {
   }
 
   beforeDestroy() {
+    store.dispatch('movement/removeListeners')
     document.body.removeEventListener('touchstart', this.onTouchstart)
     document.body.removeEventListener('touchmove', this.onTouchmove)
     document.body.removeEventListener('touchend', this.onTouchend)
     window.removeEventListener('resize', this.onWindowResize)
-    // @ts-ignore
-    document.querySelector('.animated-path').removeEventListener('animationend', this.onAnimationEnd, false)
   }
 }
 </script>
